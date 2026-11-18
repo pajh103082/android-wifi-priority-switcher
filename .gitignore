@@ -1,0 +1,15 @@
+# 本機 SDK 路徑
+local.properties
+# 編譯產物
+build/
+.gradle/
+*.apk
+*.aab
+# 簽章金鑰（絕對不能上傳）
+*.keystore
+*.jks
+簽章金鑰_勿上傳/
+# IDE
+.idea/
+*.iml
+.DS_Store
