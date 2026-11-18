@@ -19,7 +19,7 @@
 - ✅ lint 無 Error（只剩 SetTextI18n、BatteryLife 等無害 Warning）
 - ⚠ **尚未在實機測試過**。
   下次接手第一件事：問使用者在哪支手機／Android 版本上的實際表現、「切換紀錄」裡有沒有成功切換。
-- 公開於 GitHub：https://github.com/pajh103082/android-wifi-priority-switcher（APK 放在 Releases）
+- 公開於 GitHub：https://github.com/pajh103082/android-wifi-priority-switcher（APK 放在 repo 的 `release/WiFi-Priority.apk`）
 
 ## 3. 最關鍵的設計決定（不要隨便改）
 ### targetSdk 必須維持 28
@@ -120,10 +120,11 @@ gradle assembleDebug --no-daemon     # 或 ./gradlew assembleDebug
 ## 9. GitHub 發佈
 - Repo：https://github.com/pajh103082/android-wifi-priority-switcher（公開）
 - commit 作者一律用 `pajh103082 <pajh103082@users.noreply.github.com>`，**不要用使用者的真實 email**
-- APK 放在 Releases（tag `v1.1` …），檔名 `WiFi優先順序.apk`
-- **會上傳：** 原始碼、Gradle wrapper、README.md、HANDOFF.md（公開版）、.github/FUNDING.yml、.gitignore
+- APK 放在 repo 的 `release/WiFi-Priority.apk`（固定檔名，每版覆蓋；README 的下載連結指向它）。
+  雲端工作區的 git proxy **不允許**用 API 建 GitHub Release 或改 topics，所以改用這個方式；topics 要在網頁上設。
+- **會上傳：** 原始碼、`release/WiFi-Priority.apk`、Gradle wrapper、README.md、HANDOFF.md（公開版）、.github/FUNDING.yml、.gitignore
 - **絕對不上傳：** `local.properties`、`build/`、`.gradle/`、任何 `.keystore/.jks`、`簽章金鑰_勿上傳/`、
   作者本機的私人交接內容（公開版 HANDOFF.md 已移除）
 - 上傳前檢查：`git grep -niE "@gmail|Users\\|C:\\|keystore|password|<本名或暱稱>" $(git rev-list --all)`，
   確認只剩程式邏輯中正常出現的字（例如 WifiConfiguration 的密碼欄位）
-- 更新流程：改版本號 → 編譯 → 掃描 → commit/push → 建新的 Release 附 APK → 更新電腦上的資料夾
+- 更新流程：改版本號 → 編譯 → 複製 APK 到 release/ → 掃描 → commit/push → 更新 README 版本字樣 → 更新電腦上的資料夾

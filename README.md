@@ -7,7 +7,9 @@
 [![Ko-fi 贊助](https://img.shields.io/badge/Ko--fi-請作者喝咖啡-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/sagiriben)
 
 ## 下載
-到右側的 **[Releases](../../releases/latest)** 下載 `WiFi優先順序.apk`。
+👉 **[直接下載 APK（v1.1）](https://github.com/pajh103082/android-wifi-priority-switcher/raw/main/release/WiFi-Priority.apk)**
+
+（檔案在 repo 的 [`release/`](release/) 資料夾，永遠是最新版）
 
 | 項目 | 說明 |
 |---|---|

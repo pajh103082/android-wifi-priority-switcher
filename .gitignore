@@ -4,6 +4,7 @@ local.properties
 build/
 .gradle/
 *.apk
+!release/*.apk
 *.aab
 # 簽章金鑰（絕對不能上傳）
 *.keystore
