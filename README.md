@@ -1,19 +1,22 @@
 # Wi-Fi 優先順序（Android）
 
+[English](README.en.md) | **繁體中文**
+
 自己排 Wi-Fi 的優先順序，App 會在背景自動切到「附近收得到、訊號夠強、順位最高」的那個。
 
-*Android app that lets you rank your Wi-Fi networks and automatically switches to the highest-ranked one in range. UI in Traditional Chinese.*
+*Android app that lets you rank your Wi-Fi networks and automatically switches to the highest-ranked one in range. English & Traditional Chinese UI — [read in English](README.en.md).*
 
 [![Ko-fi 贊助](https://img.shields.io/badge/Ko--fi-請作者喝咖啡-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/sagiriben)
 
 ## 下載
-👉 **[直接下載 APK（v1.1）](https://github.com/pajh103082/android-wifi-priority-switcher/raw/main/release/WiFi-Priority.apk)**
+👉 **[直接下載 APK（v1.2）](https://github.com/pajh103082/android-wifi-priority-switcher/raw/main/release/WiFi-Priority.apk)**
 
 （檔案在 repo 的 [`release/`](release/) 資料夾，永遠是最新版）
 
 | 項目 | 說明 |
 |---|---|
 | 支援系統 | Android 8.0 以上（iPhone 不開放 App 控制 Wi-Fi，無法支援） |
+| 語言 | 繁體中文／English，預設跟隨手機語言，可在「設定」切換 |
 | 費用 | 免費、無廣告 |
 | 隱私 | 不連網、不收集資料；設定只存在你的手機裡 |
 | 上架 | 沒有上架 Play 商店（原因見下方「為什麼 targetSdk 是 28」） |
@@ -29,6 +32,8 @@
 3. 用 ▲ ▼ 排順序，最上面最優先。
 4. 打開「自動切換到順位最高的 Wi-Fi」。
 5. 建議：位置權限改成「一律允許」，並按「讓系統不要限制本 App」，關螢幕後才會持續運作。
+
+切換語言：「設定」→「語言 Language」→ 跟隨系統／中文／English。
 
 ## 切換規則
 - 每 20 秒檢查一次，約每 60 秒掃描附近網路。
@@ -62,7 +67,7 @@ Android 10 起，Google 不讓新版 App 指定手機連到哪個已儲存的 Wi
 ```
 輸出：`app/build/outputs/apk/debug/app-debug.apk`
 
-開發細節（架構、設計決定、切換邏輯）請看 [HANDOFF.md](HANDOFF.md)。
+開發細節（架構、設計決定、切換邏輯、翻譯方式）請看 [HANDOFF.md](HANDOFF.md)。
 
 ## 贊助
 這個 App 完全免費。如果它幫上你的忙，歡迎到 **[Ko-fi](https://ko-fi.com/sagiriben)** 請作者喝杯咖啡 ☕

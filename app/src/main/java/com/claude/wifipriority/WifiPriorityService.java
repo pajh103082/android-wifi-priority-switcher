@@ -60,11 +60,11 @@ public class WifiPriorityService extends Service {
     @Override public void onCreate() {
         super.onCreate();
         NotificationManager nm = getSystemService(NotificationManager.class);
-        NotificationChannel ch = new NotificationChannel(CHANNEL, "Wi-Fi 優先順序狀態", NotificationManager.IMPORTANCE_LOW);
+        NotificationChannel ch = new NotificationChannel(CHANNEL, L.t(this, "Wi-Fi 優先順序狀態", "Wi-Fi Priority status"), NotificationManager.IMPORTANCE_LOW);
         ch.setShowBadge(false);
         nm.createNotificationChannel(ch);
 
-        Notification n = build("啟動中…");
+        Notification n = build(L.t(this, "啟動中…", "Starting…"));
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(NOTIF_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION);
         } else {
@@ -92,7 +92,7 @@ public class WifiPriorityService extends Service {
         try {
             status = WifiHelper.evaluate(this, true);
         } catch (Exception e) {
-            status = "發生錯誤：" + e.getMessage();
+            status = L.t(this, "發生錯誤：", "Error: ") + e.getMessage();
         }
         if (!status.equals(lastText)) {
             lastText = status;
@@ -106,7 +106,7 @@ public class WifiPriorityService extends Service {
         String first = text.contains("\n") ? text.substring(0, text.indexOf('\n')) : text;
         return new Notification.Builder(this, CHANNEL)
                 .setSmallIcon(R.drawable.ic_notif)
-                .setContentTitle("Wi-Fi 優先順序：自動切換中")
+                .setContentTitle(L.t(this, "Wi-Fi 優先順序：自動切換中", "Wi-Fi Priority: auto-switch on"))
                 .setContentText(first)
                 .setStyle(new Notification.BigTextStyle().bigText(text))
                 .setContentIntent(pi)

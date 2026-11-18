@@ -22,6 +22,8 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.ScrollView;
 import android.widget.SeekBar;
 import android.widget.Switch;
@@ -53,6 +55,38 @@ public class MainActivity extends Activity {
     };
 
     // ---------- 版面 ----------
+
+    /** 依目前語言回傳中文或英文。 */
+    private String t(String zh, String en) { return L.t(this, zh, en); }
+
+    /** 語言選擇：跟隨系統／中文／English。標題永遠雙語，切錯語言也找得到。 */
+    private View languagePicker() {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(0, dp(14), 0, 0);
+        box.addView(text("語言 Language", 16, true));
+        RadioGroup g = new RadioGroup(this);
+        g.setOrientation(RadioGroup.HORIZONTAL);
+        String[][] opts = {{L.AUTO, t("跟隨系統", "System")}, {L.ZH, "中文"}, {L.EN, "English"}};
+        String current = Prefs.getLang(this);
+        for (int i = 0; i < opts.length; i++) {
+            RadioButton r = new RadioButton(this);
+            r.setId(View.generateViewId());
+            r.setText(opts[i][1]);
+            r.setTextSize(16);
+            r.setTag(opts[i][0]);
+            g.addView(r);
+            if (opts[i][0].equals(current)) r.setChecked(true);
+        }
+        g.setOnCheckedChangeListener((group, id) -> {
+            RadioButton r = group.findViewById(id);
+            if (r == null || r.getTag().equals(Prefs.getLang(this))) return;
+            Prefs.setLang(this, (String) r.getTag());
+            recreate();
+        });
+        box.addView(g);
+        return box;
+    }
 
     private int dp(int v) {
         return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v, getResources().getDisplayMetrics());
@@ -94,6 +128,7 @@ public class MainActivity extends Activity {
 
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
+        setTitle(t("Wi-Fi 優先順序", "Wi-Fi Priority"));
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
@@ -103,7 +138,7 @@ public class MainActivity extends Activity {
         // 警告區（權限、定位）
         warnView = text("", 16, false);
         warnView.setTextColor(0xFF8A4B00);
-        warnButton = button("前往設定", v -> fixWarning());
+        warnButton = button(t("前往設定", "Open settings"), v -> fixWarning());
         View warnCard = card(warnView, warnButton);
         ((GradientDrawable) warnCard.getBackground()).setColor(0xFFFFF3CD);
         warnCard.setTag("warn");
@@ -112,7 +147,7 @@ public class MainActivity extends Activity {
         // 狀態 + 開關
         statusView = text("", 18, true);
         enableSwitch = new Switch(this);
-        enableSwitch.setText("自動切換到順位最高的 Wi-Fi");
+        enableSwitch.setText(t("自動切換到順位最高的 Wi-Fi", "Auto-switch to the highest-ranked Wi-Fi"));
         enableSwitch.setTextSize(18);
         enableSwitch.setPadding(0, dp(10), 0, dp(4));
         enableSwitch.setChecked(Prefs.isEnabled(this));
@@ -120,25 +155,25 @@ public class MainActivity extends Activity {
             Prefs.setEnabled(this, on);
             if (on) {
                 WifiPriorityService.start(this);
-                Prefs.log(this, "已開啟自動切換");
+                Prefs.log(this, t("已開啟自動切換", "Auto-switch turned on"));
             } else {
                 WifiPriorityService.stop(this);
-                Prefs.log(this, "已關閉自動切換");
+                Prefs.log(this, t("已關閉自動切換", "Auto-switch turned off"));
             }
             refresh();
         });
-        Button checkNow = button("立即掃描並檢查", v -> checkNow());
-        root.addView(card(text("目前狀態", 15, false), statusView, enableSwitch, checkNow));
+        Button checkNow = button(t("立即掃描並檢查", "Scan and check now"), v -> checkNow());
+        root.addView(card(text(t("目前狀態", "Status"), 15, false), statusView, enableSwitch, checkNow));
 
         // 優先清單
         listBox = new LinearLayout(this);
         listBox.setOrientation(LinearLayout.VERTICAL);
         LinearLayout addRow = new LinearLayout(this);
-        addRow.addView(button("＋ 從附近／已儲存加入", v -> showAddPicker()), new LinearLayout.LayoutParams(0, -2, 1));
-        addRow.addView(button("＋ 手動輸入", v -> showManualAdd("")), new LinearLayout.LayoutParams(0, -2, 1));
-        TextView hint = text("越上面越優先。用 ▲ ▼ 調整順序。", 14, false);
+        addRow.addView(button(t("＋ 從附近／已儲存加入", "＋ Nearby / saved"), v -> showAddPicker()), new LinearLayout.LayoutParams(0, -2, 1));
+        addRow.addView(button(t("＋ 手動輸入", "＋ Enter manually"), v -> showManualAdd("")), new LinearLayout.LayoutParams(0, -2, 1));
+        TextView hint = text(t("越上面越優先。用 ▲ ▼ 調整順序。", "Top = highest priority. Use ▲ ▼ to reorder."), 14, false);
         hint.setTextColor(0xFF666666);
-        root.addView(card(text("優先順序清單", 20, true), hint, listBox, addRow));
+        root.addView(card(text(t("優先順序清單", "Priority list"), 20, true), hint, listBox, addRow));
 
         // 設定
         thresholdLabel = text("", 16, false);
@@ -155,23 +190,23 @@ public class MainActivity extends Activity {
         });
         updateThresholdLabel();
         CheckBox unlisted = new CheckBox(this);
-        unlisted.setText("目前連的網路不在清單中時，也切到清單裡的網路");
+        unlisted.setText(t("目前連的網路不在清單中時，也切到清單裡的網路", "Also switch away when the current network is not in the list"));
         unlisted.setTextSize(16);
         unlisted.setChecked(Prefs.switchFromUnlisted(this));
         unlisted.setOnCheckedChangeListener((v, on) -> Prefs.setSwitchFromUnlisted(this, on));
-        Button battery = button("讓系統不要限制本 App（避免背景被關）", v -> askBatteryWhitelist());
-        root.addView(card(text("設定", 20, true), thresholdLabel, seek, unlisted, battery));
+        Button battery = button(t("讓系統不要限制本 App（避免背景被關）", "Don't restrict this app (keeps it running in background)"), v -> askBatteryWhitelist());
+        root.addView(card(text(t("設定", "Settings"), 20, true), thresholdLabel, seek, unlisted, battery, languagePicker()));
 
         // 紀錄
         logView = text("", 14, false);
         logView.setTextColor(0xFF444444);
         logView.setTextIsSelectable(true);
-        Button clear = button("清除紀錄", v -> { Prefs.clearLog(this); refresh(); });
-        root.addView(card(text("切換紀錄", 20, true), logView, clear));
+        Button clear = button(t("清除紀錄", "Clear log"), v -> { Prefs.clearLog(this); refresh(); });
+        root.addView(card(text(t("切換紀錄", "Switch log"), 20, true), logView, clear));
 
         // 贊助
-        TextView thanks = text("覺得好用的話，可以請作者喝杯咖啡 ☕", 16, false);
-        Button sponsor = button("☕ 贊助作者", v -> startActivity(new Intent(this, SponsorActivity.class)));
+        TextView thanks = text(t("覺得好用的話，可以請作者喝杯咖啡 ☕", "Find it useful? You can buy the developer a coffee ☕"), 16, false);
+        Button sponsor = button(t("☕ 贊助作者", "☕ Support the developer"), v -> startActivity(new Intent(this, SponsorActivity.class)));
         sponsor.setTextColor(Color.WHITE);
         GradientDrawable kofi = new GradientDrawable();
         kofi.setColor(0xFFFF5E5B);
@@ -212,8 +247,9 @@ public class MainActivity extends Activity {
 
     private void updateThresholdLabel() {
         int t = Prefs.getThreshold(this);
-        thresholdLabel.setText("切換門檻：目標訊號要強於 " + t + " dBm（" + WifiHelper.signalWord(t)
-                + "）才切過去。\n往右＝更挑剔，往左＝訊號弱也切。");
+        String w = WifiHelper.signalWord(this, t);
+        thresholdLabel.setText(t("切換門檻：目標訊號要強於 " + t + " dBm（" + w + "）才切過去。\n往右＝更挑剔，往左＝訊號弱也切。",
+                "Switch threshold: only switch when the target is stronger than " + t + " dBm (" + w + ").\nRight = pickier, left = switch even on weak signal."));
     }
 
     // ---------- 畫面更新 ----------
@@ -222,11 +258,11 @@ public class MainActivity extends Activity {
         // 警告
         String warn = null;
         if (!WifiHelper.hasLocationPermission(this)) {
-            warn = "⚠ 需要「位置」權限，並選「精確位置」。Android 規定要有這個權限才能看到附近的 Wi-Fi 名稱。";
+            warn = t("⚠ 需要「位置」權限，並選「精確位置」。Android 規定要有這個權限才能看到附近的 Wi-Fi 名稱。", "⚠ Location permission (\"Precise\") is required. Android only shows nearby Wi-Fi names to apps that have it.");
         } else if (!WifiHelper.isLocationOn(this)) {
-            warn = "⚠ 手機的「定位」是關的。請打開，否則 App 看不到附近的 Wi-Fi。";
+            warn = t("⚠ 手機的「定位」是關的。請打開，否則 App 看不到附近的 Wi-Fi。", "⚠ Location is turned off. Please turn it on, otherwise the app can't see nearby Wi-Fi.");
         } else if (Prefs.isEnabled(this) && !WifiHelper.hasBackgroundLocation(this)) {
-            warn = "建議：把位置權限改成「一律允許」，關掉螢幕後才能持續自動切換。";
+            warn = t("建議：把位置權限改成「一律允許」，關掉螢幕後才能持續自動切換。", "Tip: set location permission to \"Allow all the time\" so auto-switch keeps working with the screen off.");
         }
         View warnCard = getWindow().getDecorView().findViewWithTag("warn");
         if (warnCard != null) warnCard.setVisibility(warn == null ? View.GONE : View.VISIBLE);
@@ -240,14 +276,14 @@ public class MainActivity extends Activity {
         String cur = WifiHelper.currentSsid(this);
         listBox.removeAllViews();
         if (order.isEmpty()) {
-            TextView empty = text("（還沒有網路，按下方按鈕加入）", 16, false);
+            TextView empty = text(t("（還沒有網路，按下方按鈕加入）", "(No networks yet — add one with the buttons below)"), 16, false);
             empty.setPadding(0, dp(10), 0, dp(10));
             listBox.addView(empty);
         }
         for (int i = 0; i < order.size(); i++) listBox.addView(row(order, i, scan, cur));
 
         String log = Prefs.getLog(this);
-        logView.setText(log.isEmpty() ? "（尚無紀錄）" : log);
+        logView.setText(log.isEmpty() ? t("（尚無紀錄）", "(no entries yet)") : log);
     }
 
     private View row(List<String> order, int i, Map<String, Integer> scan, String cur) {
@@ -263,11 +299,12 @@ public class MainActivity extends Activity {
 
         LinearLayout info = new LinearLayout(this);
         info.setOrientation(LinearLayout.VERTICAL);
-        TextView name = text(ssid + (ssid.equals(cur) ? "  ● 已連線" : ""), 18, true);
+        TextView name = text(ssid + (ssid.equals(cur) ? t("  ● 已連線", "  ● connected") : ""), 18, true);
         if (ssid.equals(cur)) name.setTextColor(0xFF2E7D32);
         Integer lv = scan.get(ssid);
-        String sig = lv == null ? "不在附近" : "訊號 " + WifiHelper.signalWord(lv) + "（" + lv + " dBm）";
-        if (Prefs.recentlyFailed(this, ssid)) sig += "・剛才連線失敗";
+        String sig = lv == null ? t("不在附近", "not in range")
+                : t("訊號 " + WifiHelper.signalWord(this, lv) + "（" + lv + " dBm）", "Signal " + WifiHelper.signalWord(this, lv) + " (" + lv + " dBm)");
+        if (Prefs.recentlyFailed(this, ssid)) sig += t("・剛才連線失敗", " · last attempt failed");
         TextView sub = text(sig, 14, false);
         sub.setTextColor(lv == null ? 0xFF999999 : 0xFF555555);
         info.addView(name);
@@ -304,14 +341,14 @@ public class MainActivity extends Activity {
 
     private void confirmRemove(String ssid) {
         new AlertDialog.Builder(this)
-                .setMessage("把「" + ssid + "」從優先清單移除？\n（不會刪除手機裡儲存的 Wi-Fi）")
-                .setPositiveButton("移除", (d, w) -> {
+                .setMessage(t("把「" + ssid + "」從優先清單移除？\n（不會刪除手機裡儲存的 Wi-Fi）", "Remove \"" + ssid + "\" from the priority list?\n(The Wi-Fi saved on your phone is not deleted.)"))
+                .setPositiveButton(t("移除", "Remove"), (d, w) -> {
                     List<String> order = Prefs.getOrder(this);
                     order.remove(ssid);
                     Prefs.setOrder(this, order);
                     refresh();
                 })
-                .setNegativeButton("取消", null)
+                .setNegativeButton(t("取消", "Cancel"), null)
                 .show();
     }
 
@@ -321,7 +358,7 @@ public class MainActivity extends Activity {
         Prefs.setOrder(this, order);
         Prefs.clearFailed(this, ssid);
         refresh();
-        Toast.makeText(this, "已加入「" + ssid + "」", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, t("已加入「" + ssid + "」", "Added \"" + ssid + "\""), Toast.LENGTH_SHORT).show();
     }
 
     private void showAddPicker() {
@@ -339,24 +376,24 @@ public class MainActivity extends Activity {
             return a.compareToIgnoreCase(b);
         });
         if (names.isEmpty()) {
-            Toast.makeText(this, "找不到可加入的網路。可以按「手動輸入」。", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, t("找不到可加入的網路。可以按「手動輸入」。", "No networks found to add. Try \"Enter manually\"."), Toast.LENGTH_LONG).show();
             return;
         }
         String[] labels = new String[names.size()];
         for (int i = 0; i < names.size(); i++) {
             String s = names.get(i);
             Integer lv = scan.get(s);
-            labels[i] = s + "\n    " + (saved.contains(s) ? "已儲存" : "未儲存（需輸入密碼）")
-                    + "・" + (lv == null ? "不在附近" : "訊號" + WifiHelper.signalWord(lv));
+            labels[i] = s + "\n    " + (saved.contains(s) ? t("已儲存", "saved") : t("未儲存（需輸入密碼）", "not saved (password needed)"))
+                    + " · " + (lv == null ? t("不在附近", "not in range") : t("訊號", "signal ") + WifiHelper.signalWord(this, lv));
         }
         new AlertDialog.Builder(this)
-                .setTitle("選擇要加入的網路")
+                .setTitle(t("選擇要加入的網路", "Choose a network to add"))
                 .setItems(labels, (d, w) -> {
                     String s = names.get(w);
                     if (WifiHelper.findNetId(this, s) >= 0) addToList(s);
                     else showManualAdd(s);
                 })
-                .setNegativeButton("取消", null)
+                .setNegativeButton(t("取消", "Cancel"), null)
                 .show();
     }
 
@@ -365,24 +402,24 @@ public class MainActivity extends Activity {
         box.setOrientation(LinearLayout.VERTICAL);
         box.setPadding(dp(20), dp(8), dp(20), 0);
         EditText ssid = new EditText(this);
-        ssid.setHint("Wi-Fi 名稱（SSID）");
+        ssid.setHint(t("Wi-Fi 名稱（SSID）", "Wi-Fi name (SSID)"));
         ssid.setText(presetSsid);
         ssid.setSingleLine();
         EditText pw = new EditText(this);
-        pw.setHint("密碼（沒有密碼就留空）");
+        pw.setHint(t("密碼（沒有密碼就留空）", "Password (leave empty if none)"));
         pw.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
         pw.setSingleLine();
         CheckBox hidden = new CheckBox(this);
-        hidden.setText("這是隱藏的網路");
+        hidden.setText(t("這是隱藏的網路", "This is a hidden network"));
         box.addView(ssid);
         box.addView(pw);
         box.addView(hidden);
         if (!presetSsid.isEmpty()) pw.requestFocus();
 
         new AlertDialog.Builder(this)
-                .setTitle("新增 Wi-Fi")
+                .setTitle(t("新增 Wi-Fi", "Add Wi-Fi"))
                 .setView(box)
-                .setPositiveButton("加入", (d, w) -> {
+                .setPositiveButton(t("加入", "Add"), (d, w) -> {
                     String s = ssid.getText().toString().trim();
                     if (s.isEmpty()) return;
                     if (WifiHelper.findNetId(this, s) >= 0) {
@@ -393,20 +430,20 @@ public class MainActivity extends Activity {
                     int id = WifiHelper.addNetwork(this, s, pw.getText().toString(), hidden.isChecked());
                     if (id == -1) {
                         new AlertDialog.Builder(this)
-                                .setMessage("系統不接受這組設定。\n若這是 WPA3 或企業網路，請先到手機的 Wi-Fi 設定連過一次，再回來加入。")
-                                .setPositiveButton("好", null).show();
+                                .setMessage(t("系統不接受這組設定。\n若這是 WPA3 或企業網路，請先到手機的 Wi-Fi 設定連過一次，再回來加入。", "Android rejected these settings.\nIf this is a WPA3 or enterprise network, connect to it once in the phone's Wi-Fi settings, then come back and add it."))
+                                .setPositiveButton(t("好", "OK"), null).show();
                     } else {
-                        Prefs.log(this, "已新增網路設定「" + s + "」");
+                        Prefs.log(this, t("已新增網路設定「" + s + "」", "Added network settings for \"" + s + "\""));
                         addToList(s);
                     }
                 })
-                .setNegativeButton("取消", null)
+                .setNegativeButton(t("取消", "Cancel"), null)
                 .show();
     }
 
     private void checkNow() {
         try { WifiHelper.wm(this).startScan(); } catch (Exception ignored) {}
-        statusView.setText("掃描中…");
+        statusView.setText(t("掃描中…", "Scanning…"));
         handler.postDelayed(() -> {
             String s = WifiHelper.evaluate(this, true);
             Toast.makeText(this, s, Toast.LENGTH_LONG).show();
@@ -428,7 +465,7 @@ public class MainActivity extends Activity {
         } else if (!WifiHelper.isLocationOn(this)) {
             startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
         } else {
-            Toast.makeText(this, "請點「權限」→「位置」→「一律允許」", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, t("請點「權限」→「位置」→「一律允許」", "Tap Permissions → Location → Allow all the time"), Toast.LENGTH_LONG).show();
             openAppSettings();
         }
     }
@@ -441,7 +478,7 @@ public class MainActivity extends Activity {
     private void askBatteryWhitelist() {
         PowerManager pm = getSystemService(PowerManager.class);
         if (pm != null && pm.isIgnoringBatteryOptimizations(getPackageName())) {
-            Toast.makeText(this, "已經設定好了 ✓", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, t("已經設定好了 ✓", "Already set ✓"), Toast.LENGTH_SHORT).show();
             return;
         }
         try {

@@ -35,7 +35,7 @@ public class SponsorActivity extends Activity {
 
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
-        setTitle("贊助作者");
+        setTitle(L.t(this, "贊助作者", "Support the developer"));
         if (getActionBar() != null) getActionBar().setDisplayHomeAsUpEnabled(true);
 
         LinearLayout root = new LinearLayout(this);
@@ -48,20 +48,24 @@ public class SponsorActivity extends Activity {
         cup.setGravity(Gravity.CENTER);
         root.addView(cup);
 
-        TextView title = text("請作者喝杯咖啡", 26, true);
+        TextView title = text(L.t(this, "請作者喝杯咖啡", "Buy me a coffee"), 26, true);
         title.setGravity(Gravity.CENTER);
         title.setPadding(0, dp(8), 0, dp(16));
         root.addView(title);
 
-        TextView body = text(
+        TextView body = text(L.t(this,
                 "這個 App 完全免費、沒有廣告，也不會收集你的任何資料。\n\n"
                 + "如果它幫你省了每天手動切 Wi-Fi 的麻煩，歡迎透過 Ko-fi 小額贊助，"
                 + "支持我繼續維護和加新功能。\n\n"
-                + "不贊助也完全沒關係，所有功能都一樣能用 🙂", 18, false);
+                + "不贊助也完全沒關係，所有功能都一樣能用 🙂",
+                "This app is completely free, has no ads, and collects none of your data.\n\n"
+                + "If it saves you from switching Wi-Fi by hand, a small tip on Ko-fi "
+                + "helps me keep maintaining it and adding features.\n\n"
+                + "No pressure at all — every feature works the same either way 🙂"), 18, false);
         root.addView(body);
 
         Button go = new Button(this);
-        go.setText("☕  到 Ko-fi 贊助");
+        go.setText(L.t(this, "☕  到 Ko-fi 贊助", "☕  Support on Ko-fi"));
         go.setTextSize(20);
         go.setAllCaps(false);
         go.setTextColor(Color.WHITE);
@@ -74,7 +78,7 @@ public class SponsorActivity extends Activity {
             try {
                 startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(KOFI_URL)));
             } catch (Exception e) {
-                Toast.makeText(this, "找不到瀏覽器，請手動開啟：" + KOFI_URL, Toast.LENGTH_LONG).show();
+                Toast.makeText(this, L.t(this, "找不到瀏覽器，請手動開啟：", "No browser found. Please open: ") + KOFI_URL, Toast.LENGTH_LONG).show();
             }
         });
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);

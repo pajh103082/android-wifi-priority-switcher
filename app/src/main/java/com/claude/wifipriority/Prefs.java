@@ -34,6 +34,10 @@ final class Prefs {
         sp(c).edit().putString("order", a.toString()).apply();
     }
 
+    /** 介面語言：auto（跟隨系統）／zh／en。 */
+    static String getLang(Context c) { return sp(c).getString("lang", L.AUTO); }
+    static void setLang(Context c, String v) { sp(c).edit().putString("lang", v).apply(); }
+
     static boolean isEnabled(Context c) { return sp(c).getBoolean("enabled", false); }
     static void setEnabled(Context c, boolean v) { sp(c).edit().putBoolean("enabled", v).apply(); }
 
@@ -61,7 +65,7 @@ final class Prefs {
     static void clearFailed(Context c, String ssid) { sp(c).edit().remove("fail_" + ssid).apply(); }
 
     static synchronized void log(Context c, String msg) {
-        String time = new SimpleDateFormat("MM/dd HH:mm:ss", Locale.TAIWAN).format(new Date());
+        String time = new SimpleDateFormat("MM/dd HH:mm:ss", Locale.US).format(new Date());
         String old = sp(c).getString("log", "");
         String[] lines = old.isEmpty() ? new String[0] : old.split("\n");
         StringBuilder sb = new StringBuilder(time).append("  ").append(msg);

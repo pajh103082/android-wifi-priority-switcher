@@ -1,7 +1,7 @@
 # 交接文件：Wi-Fi 優先順序 App
 
 > 給下一次接手的 Claude（或任何開發者）。先讀這份，再動程式碼。
-> 最後更新：2026-11-19（v1.1：加入贊助頁面、上傳 GitHub）
+> 最後更新：2026-11-19（v1.2：中英文切換）
 
 ## 1. 這是什麼
 使用者要一個「可以控制手機優先連哪個 Wi-Fi」的 App。
@@ -9,12 +9,13 @@
 自動切到「附近收得到、訊號 ≥ 門檻、順位最高」的網路。
 - 平台：**只有 Android**（iOS 不開放 App 控制 Wi-Fi 切換，已跟使用者說明）
 - 語言：Java，**不使用 AndroidX / 任何第三方套件**（只用 Android framework，建置快、體積小）
-- UI：全部用程式碼產生（沒有 layout XML），繁體中文、大字體
+- UI：全部用程式碼產生（沒有 layout XML），**繁體中文／英文雙語**（見第 10 節）、大字體
 
 ## 2. 目前狀態
-- 版本：**v1.1（versionCode 2）**
+- 版本：**v1.2（versionCode 3）**
   - v1.0（2026-11-12）：初版
   - v1.1（2026-11-19）：新增「贊助作者」頁面（`SponsorActivity`，連到 Ko-fi https://ko-fi.com/sagiriben），主畫面最下方有入口
+  - v1.2（2026-11-19）：中英文切換（設定 → 語言 Language：跟隨系統／中文／English）；App 名稱依系統語言；英文說明 README.en.md
 - ✅ 已編譯成功、簽章驗證通過（debug 簽章，v2 scheme）
 - ✅ lint 無 Error（只剩 SetTextI18n、BatteryLife 等無害 Warning）
 - ⚠ **尚未在實機測試過**。
@@ -49,7 +50,8 @@
 WifiPriority/
 ├─ settings.gradle / build.gradle / gradle.properties
 ├─ gradlew, gradle/wrapper/           Gradle 8.14.3 wrapper
-├─ README.md                          給使用者看的說明（也是 GitHub 首頁）
+├─ README.md                          中文說明（GitHub 首頁）
+├─ README.en.md                       英文說明（內容要跟 README.md 同步）
 ├─ .github/FUNDING.yml                GitHub 的 Sponsor 按鈕（Ko-fi）
 ├─ .gitignore
 ├─ HANDOFF.md                         本文件
@@ -57,13 +59,16 @@ WifiPriority/
    ├─ build.gradle                    AGP 8.7.3，compileSdk 34，minSdk 26，targetSdk 28
    └─ src/main/
       ├─ AndroidManifest.xml          權限、服務、開機接收器
-      ├─ res/                         app 名稱、向量圖示（ic_fg/ic_bg/ic_notif）
+      ├─ res/values/strings.xml       App 名稱（英文，預設）
+      ├─ res/values-zh/strings.xml    App 名稱（中文，手機語言為中文時）
+      ├─ res/drawable/                向量圖示（ic_fg/ic_bg/ic_notif）
       └─ java/com/claude/wifipriority/
          ├─ MainActivity.java         UI：狀態、清單排序、新增網路、設定、紀錄、贊助入口
          ├─ SponsorActivity.java      贊助頁面（Ko-fi 按鈕，網址常數 KOFI_URL）
          ├─ WifiHelper.java           ★ 核心：掃描、找 netId、addNetwork、evaluate() 判斷是否切換
          ├─ WifiPriorityService.java  前景服務：每 20 秒 evaluate、每 60 秒 startScan、監聽 Wi-Fi 廣播
-         ├─ Prefs.java                SharedPreferences：順序(JSON)、開關、門檻、失敗紀錄、log(最多40行)
+         ├─ L.java                    雙語工具 L.t(ctx, 中文, English)
+         ├─ Prefs.java                SharedPreferences：順序(JSON)、開關、門檻、語言、失敗紀錄、log(最多40行)
          └─ BootReceiver.java         開機／App 更新後，若開關為開則自動啟動服務
 ```
 
@@ -122,9 +127,31 @@ gradle assembleDebug --no-daemon     # 或 ./gradlew assembleDebug
 - commit 作者一律用 `pajh103082 <pajh103082@users.noreply.github.com>`，**不要用使用者的真實 email**
 - APK 放在 repo 的 `release/WiFi-Priority.apk`（固定檔名，每版覆蓋；README 的下載連結指向它）。
   雲端工作區的 git proxy **不允許**用 API 建 GitHub Release 或改 topics，所以改用這個方式；topics 要在網頁上設。
-- **會上傳：** 原始碼、`release/WiFi-Priority.apk`、Gradle wrapper、README.md、HANDOFF.md（公開版）、.github/FUNDING.yml、.gitignore
+- **會上傳：** 原始碼、`release/WiFi-Priority.apk`、Gradle wrapper、README.md、README.en.md、HANDOFF.md（公開版）、.github/FUNDING.yml、.gitignore
 - **絕對不上傳：** `local.properties`、`build/`、`.gradle/`、任何 `.keystore/.jks`、`簽章金鑰_勿上傳/`、
   作者本機的私人交接內容（公開版 HANDOFF.md 已移除）
 - 上傳前檢查：`git grep -niE "@gmail|Users\\|C:\\|keystore|password|<本名或暱稱>" $(git rev-list --all)`，
   確認只剩程式邏輯中正常出現的字（例如 WifiConfiguration 的密碼欄位）
-- 更新流程：改版本號 → 編譯 → 複製 APK 到 release/ → 掃描 → commit/push → 更新 README 版本字樣 → 更新電腦上的資料夾
+- 更新流程：改版本號 → 編譯 → 複製 APK 到 release/ → **README.md 與 README.en.md 兩份的版本字樣都要改** → 掃描 → commit/push → 驗證下載連結 → 更新電腦上的資料夾
+
+## 10. 多語系（中文／英文）維護方式
+- **做法：** 沒有用 Android 的 strings.xml 翻譯（因為 UI 全是程式碼產生，且要能在 App 內切換語言，
+  不受系統語言限制），而是用 `L.t(context, "中文", "English")`，在呼叫當下依設定回傳其中一種。
+  - `MainActivity` 內有捷徑 `t("中文", "English")`
+  - `WifiHelper.signalWord(ctx, rssi)`、`describe(ctx, …)`、`evaluate()` 的狀態文字都已雙語
+  - 通知文字（`WifiPriorityService`）、贊助頁（`SponsorActivity`）都已雙語
+- **語言設定：** `Prefs.getLang/setLang`，值為 `auto`／`zh`／`en`，預設 `auto`。
+  `auto` 的規則：手機語言是中文（`Locale.getDefault().getLanguage()` 為 `zh`，含繁簡）→ 中文；其他所有語言 → 英文。
+- **切換 UI：** 設定卡片最下方「語言 Language」三個選項；選了就 `recreate()` 重畫畫面。
+  標題「語言 Language」刻意固定雙語，避免使用者切到看不懂的語言後找不到改回來的地方。
+- **App 名稱（桌面圖示下的字）：** 只能跟隨系統語言 → `values/strings.xml`（Wi-Fi Priority）與 `values-zh/strings.xml`（Wi-Fi 優先順序）。
+  畫面標題列則在 `onCreate` 用 `setTitle(t(...))`，會跟著 App 內語言設定。
+- **通知列文字：** 服務每次檢查都會重新產生文字，切換語言後下一次檢查（最多 20 秒）就會換成新語言。
+- **切換紀錄（log）：** 每一行是寫入當下的語言，切換語言後舊紀錄不會被翻譯（屬正常）。
+- **新增或修改任何顯示文字時的規則：**
+  1. 一律寫成 `t("中文", "English")` / `L.t(c, "中文", "English")`，不要再寫單一語言的字串。
+  2. 檢查有沒有漏翻：`grep -n '"[^"]*[一-龥]' app/src/main/java/com/claude/wifipriority/*.java | grep -v 't("'`，
+     只應剩下多行 `L.t(...)` 中間的中文行。
+  3. 功能或說明有變，`README.md` 和 `README.en.md` 兩份都要更新。
+- **想加第三種語言時：** 把 `L.t` 改成依語言代碼查表，或改用 strings.xml + 自訂 Context locale；
+  目前只有兩種語言，用 `t(zh, en)` 最簡單。

@@ -124,38 +124,41 @@ final class WifiHelper {
         return id;
     }
 
-    static String signalWord(int rssi) {
-        if (rssi >= -60) return "強";
-        if (rssi >= -70) return "中";
-        if (rssi >= -80) return "弱";
-        return "很弱";
+    static String signalWord(Context c, int rssi) {
+        if (rssi >= -60) return L.t(c, "強", "strong");
+        if (rssi >= -70) return L.t(c, "中", "fair");
+        if (rssi >= -80) return L.t(c, "弱", "weak");
+        return L.t(c, "很弱", "very weak");
     }
 
-    static String describe(List<String> order, String ssid) {
-        if (ssid.isEmpty()) return "未連線";
+    static String describe(Context c, List<String> order, String ssid) {
+        if (ssid.isEmpty()) return L.t(c, "未連線", "not connected");
         int r = order.indexOf(ssid);
-        return ssid + (r >= 0 ? "（第 " + (r + 1) + " 順位）" : "（不在清單）");
+        if (r >= 0) return ssid + L.t(c, "（第 " + (r + 1) + " 順位）", " (#" + (r + 1) + ")");
+        return ssid + L.t(c, "（不在清單）", " (not in list)");
     }
 
     /**
      * 檢查目前狀態，必要時切到順位最高、訊號夠強的網路。
      * @param allowSwitch false 時只回報，不動作
-     * @return 給人看的狀態說明
+     * @return 給人看的狀態說明（依目前語言）
      */
     static synchronized String evaluate(Context c, boolean allowSwitch) {
         WifiManager wm = wm(c);
-        if (!wm.isWifiEnabled()) return "Wi-Fi 目前是關閉的";
-        if (!hasLocationPermission(c)) return "需要「精確位置」權限才能看到附近的 Wi-Fi";
-        if (!isLocationOn(c)) return "請開啟手機的「定位」，否則系統不給 App 看附近的 Wi-Fi";
+        if (!wm.isWifiEnabled()) return L.t(c, "Wi-Fi 目前是關閉的", "Wi-Fi is turned off");
+        if (!hasLocationPermission(c)) return L.t(c, "需要「精確位置」權限才能看到附近的 Wi-Fi",
+                "\"Precise location\" permission is needed to see nearby Wi-Fi");
+        if (!isLocationOn(c)) return L.t(c, "請開啟手機的「定位」，否則系統不給 App 看附近的 Wi-Fi",
+                "Please turn on Location, otherwise Android hides nearby Wi-Fi from apps");
 
         List<String> order = Prefs.getOrder(c);
-        if (order.isEmpty()) return "優先清單是空的，請先加入網路";
+        if (order.isEmpty()) return L.t(c, "優先清單是空的，請先加入網路", "Your priority list is empty — add a network first");
 
         String cur = currentSsid(c);
         int curRank = order.indexOf(cur);
         int threshold = Prefs.getThreshold(c);
         Map<String, Integer> scan = scanMap(c);
-        String curDesc = describe(order, cur);
+        String now = L.t(c, "目前：", "Now: ") + describe(c, order, cur);
 
         // 剛切換過：檢查是否成功
         String lastTarget = Prefs.getLastTarget(c);
@@ -165,7 +168,9 @@ final class WifiHelper {
                 Prefs.clearFailed(c, cur);
             } else if (since > FAIL_CHECK_MS && since < FAIL_CHECK_MS * 3 && !Prefs.recentlyFailed(c, lastTarget)) {
                 Prefs.markFailed(c, lastTarget);
-                Prefs.log(c, "連到「" + lastTarget + "」失敗（密碼錯誤或訊號不穩？），5 分鐘內先跳過");
+                Prefs.log(c, L.t(c,
+                        "連到「" + lastTarget + "」失敗（密碼錯誤或訊號不穩？），5 分鐘內先跳過",
+                        "Failed to connect to \"" + lastTarget + "\" (wrong password or unstable signal?) — skipping it for 5 min"));
             }
         }
 
@@ -182,47 +187,51 @@ final class WifiHelper {
             break;
         }
 
-        if (best == null) return "目前：" + curDesc + "\n附近沒有清單中訊號夠強的網路";
-        if (best.equals(cur)) return "目前：" + curDesc + "\n已經是最佳選擇 ✓";
+        if (best == null) return now + L.t(c, "\n附近沒有清單中訊號夠強的網路", "\nNo network from your list is strong enough nearby");
+        if (best.equals(cur)) return now + L.t(c, "\n已經是最佳選擇 ✓", "\nAlready the best choice ✓");
 
         boolean shouldSwitch;
         String reason;
         if (cur.isEmpty()) {
             shouldSwitch = true;
-            reason = "目前沒有連線";
+            reason = L.t(c, "目前沒有連線", "not connected");
         } else if (curRank == -1) {
             shouldSwitch = Prefs.switchFromUnlisted(c);
-            reason = "目前的網路不在清單中";
+            reason = L.t(c, "目前的網路不在清單中", "current network is not in the list");
         } else if (bestRank < curRank) {
             shouldSwitch = true;
-            reason = "「" + best + "」順位較高";
+            reason = L.t(c, "「" + best + "」順位較高", "\"" + best + "\" has higher priority");
         } else {
             // 目前網路順位較高，但訊號太差了
             int curRssi = currentRssi(c);
             shouldSwitch = curRssi < threshold - HYSTERESIS_DB;
-            reason = "目前網路訊號太弱（" + curRssi + " dBm）";
+            reason = L.t(c, "目前網路訊號太弱（" + curRssi + " dBm）", "current signal too weak (" + curRssi + " dBm)");
         }
 
-        if (!shouldSwitch) return "目前：" + curDesc + "\n維持不動";
+        if (!shouldSwitch) return now + L.t(c, "\n維持不動", "\nStaying on this network");
 
-        String advice = "目前：" + curDesc + "\n→ 應切到「" + best + "」（" + reason + "）";
+        String advice = now + L.t(c, "\n→ 應切到「" + best + "」（" + reason + "）",
+                "\n→ Should switch to \"" + best + "\" (" + reason + ")");
         if (!allowSwitch) return advice;
 
-        if (since < COOLDOWN_MS) return advice + "\n（剛切換過，稍等一下）";
+        if (since < COOLDOWN_MS) return advice + L.t(c, "\n（剛切換過，稍等一下）", "\n(just switched, waiting a moment)");
 
         int netId = findNetId(c, best);
         if (netId < 0) {
             Prefs.markFailed(c, best);
-            Prefs.log(c, "找不到「" + best + "」的連線設定，請在 App 裡按「新增」輸入它的密碼");
-            return advice + "\n但找不到它的連線設定";
+            Prefs.log(c, L.t(c,
+                    "找不到「" + best + "」的連線設定，請在 App 裡按「新增」輸入它的密碼",
+                    "No saved settings for \"" + best + "\" — tap \"Add\" in the app and enter its password"));
+            return advice + L.t(c, "\n但找不到它的連線設定", "\nbut its connection settings were not found");
         }
 
         boolean ok = wm.enableNetwork(netId, true);
         wm.reconnect();
         Prefs.setLastSwitch(c, best);
         Integer lv = scan.get(best);
-        Prefs.log(c, (cur.isEmpty() ? "（未連線）" : cur) + " → " + best
-                + "（訊號 " + lv + " dBm，" + reason + "）" + (ok ? "" : " ⚠ 系統拒絕"));
-        return "目前：" + curDesc + "\n正在切換到「" + best + "」…";
+        Prefs.log(c, (cur.isEmpty() ? L.t(c, "（未連線）", "(none)") : cur) + " → " + best
+                + L.t(c, "（訊號 " + lv + " dBm，" + reason + "）", " (signal " + lv + " dBm, " + reason + ")")
+                + (ok ? "" : L.t(c, " ⚠ 系統拒絕", " ⚠ refused by system")));
+        return now + L.t(c, "\n正在切換到「" + best + "」…", "\nSwitching to \"" + best + "\"…");
     }
 }

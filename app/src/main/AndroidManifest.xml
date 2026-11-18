@@ -32,7 +32,7 @@
         <activity
             android:name=".SponsorActivity"
             android:exported="false"
-            android:label="贊助作者"
+            android:label="@string/app_name"
             android:parentActivityName=".MainActivity" />
 
         <service
