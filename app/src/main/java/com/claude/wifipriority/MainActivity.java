@@ -26,7 +26,6 @@ import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.ScrollView;
 import android.widget.SeekBar;
-import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -45,12 +44,15 @@ public class MainActivity extends Activity {
     private LinearLayout listBox;
     private TextView statusView, warnView, logView, thresholdLabel;
     private Button warnButton;
-    private Switch enableSwitch;
+    private Button powerButton, intervalButton;
+    private TextView timingView;
+    private int tickCount = 0;
 
+    /** 每秒更新倒數；每 4 秒重畫整個畫面（清單訊號、狀態、紀錄）。 */
     private final Runnable autoRefresh = new Runnable() {
         @Override public void run() {
-            refresh();
-            handler.postDelayed(this, 4_000L);
+            if (tickCount++ % 4 == 0) refresh(); else updateTiming();
+            handler.postDelayed(this, 1_000L);
         }
     };
 
@@ -135,6 +137,17 @@ public class MainActivity extends Activity {
         root.setPadding(dp(14), dp(14), dp(14), dp(24));
         root.setBackgroundColor(0xFFF1F4F8);
 
+        // 最上方：啟用／停用大按鈕
+        powerButton = new Button(this);
+        powerButton.setAllCaps(false);
+        powerButton.setTextSize(20);
+        powerButton.setTextColor(Color.WHITE);
+        powerButton.setPadding(dp(16), dp(18), dp(16), dp(18));
+        powerButton.setOnClickListener(v -> setEnabled(!Prefs.isEnabled(this)));
+        LinearLayout.LayoutParams plp = new LinearLayout.LayoutParams(-1, -2);
+        plp.setMargins(0, 0, 0, dp(12));
+        root.addView(powerButton, plp);
+
         // 警告區（權限、定位）
         warnView = text("", 16, false);
         warnView.setTextColor(0xFF8A4B00);
@@ -146,24 +159,11 @@ public class MainActivity extends Activity {
 
         // 狀態 + 開關
         statusView = text("", 18, true);
-        enableSwitch = new Switch(this);
-        enableSwitch.setText(t("自動切換到順位最高的 Wi-Fi", "Auto-switch to the highest-ranked Wi-Fi"));
-        enableSwitch.setTextSize(18);
-        enableSwitch.setPadding(0, dp(10), 0, dp(4));
-        enableSwitch.setChecked(Prefs.isEnabled(this));
-        enableSwitch.setOnCheckedChangeListener((v, on) -> {
-            Prefs.setEnabled(this, on);
-            if (on) {
-                WifiPriorityService.start(this);
-                Prefs.log(this, t("已開啟自動切換", "Auto-switch turned on"));
-            } else {
-                WifiPriorityService.stop(this);
-                Prefs.log(this, t("已關閉自動切換", "Auto-switch turned off"));
-            }
-            refresh();
-        });
+        timingView = text("", 15, false);
+        timingView.setTextColor(0xFF1565C0);
+        timingView.setPadding(0, dp(8), 0, dp(4));
         Button checkNow = button(t("立即掃描並檢查", "Scan and check now"), v -> checkNow());
-        root.addView(card(text(t("目前狀態", "Status"), 15, false), statusView, enableSwitch, checkNow));
+        root.addView(card(text(t("目前狀態", "Status"), 15, false), statusView, timingView, checkNow));
 
         // 優先清單
         listBox = new LinearLayout(this);
@@ -176,7 +176,12 @@ public class MainActivity extends Activity {
         root.addView(card(text(t("優先順序清單", "Priority list"), 20, true), hint, listBox, addRow));
 
         // 設定
+        intervalButton = button("", v -> showIntervalPicker());
+        TextView intervalHint = text(t("多久檢查一次要不要切換網路。越頻繁切得越快，但比較耗電。",
+                "How often to check whether to switch. More often = faster switching but more battery use."), 14, false);
+        intervalHint.setTextColor(0xFF666666);
         thresholdLabel = text("", 16, false);
+        thresholdLabel.setPadding(0, dp(12), 0, 0);
         SeekBar seek = new SeekBar(this);
         seek.setMax(40); // -90 ~ -50
         seek.setProgress(Prefs.getThreshold(this) + 90);
@@ -195,7 +200,7 @@ public class MainActivity extends Activity {
         unlisted.setChecked(Prefs.switchFromUnlisted(this));
         unlisted.setOnCheckedChangeListener((v, on) -> Prefs.setSwitchFromUnlisted(this, on));
         Button battery = button(t("讓系統不要限制本 App（避免背景被關）", "Don't restrict this app (keeps it running in background)"), v -> askBatteryWhitelist());
-        root.addView(card(text(t("設定", "Settings"), 20, true), thresholdLabel, seek, unlisted, battery, languagePicker()));
+        root.addView(card(text(t("設定", "Settings"), 20, true), intervalButton, intervalHint, thresholdLabel, seek, unlisted, battery, languagePicker()));
 
         // 紀錄
         logView = text("", 14, false);
@@ -245,6 +250,85 @@ public class MainActivity extends Activity {
         refresh();
     }
 
+    // ---------- 啟用開關、檢查頻率 ----------
+
+    private void setEnabled(boolean on) {
+        Prefs.setEnabled(this, on);
+        if (on) {
+            WifiPriorityService.start(this);
+            Prefs.log(this, t("已開啟自動切換（" , "Auto-switch turned on (")
+                    + WifiPriorityService.intervalLabel(this, Prefs.getIntervalSec(this)) + t("）", ")"));
+        } else {
+            WifiPriorityService.stop(this);
+            Prefs.log(this, t("已停用自動切換", "Auto-switch turned off"));
+        }
+        refresh();
+    }
+
+    private void updatePowerButton() {
+        boolean on = Prefs.isEnabled(this);
+        powerButton.setText(on
+                ? t("● 自動切換：開啟中\n點一下停用", "● Auto-switch: ON\nTap to turn off")
+                : t("○ 自動切換：已停用\n點一下啟用", "○ Auto-switch: OFF\nTap to turn on"));
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(on ? 0xFF2E7D32 : 0xFF757575);
+        bg.setCornerRadius(dp(14));
+        powerButton.setBackground(bg);
+    }
+
+    private String freqText(int sec) {
+        if (sec < 60) return t("每 " + sec + " 秒", "every " + sec + " s");
+        return t("每 " + (sec / 60) + " 分鐘", "every " + (sec / 60) + " min");
+    }
+
+    private void updateTiming() {
+        if (timingView == null) return;
+        int sec = Prefs.getIntervalSec(this);
+        if (intervalButton != null) intervalButton.setText(t("檢查頻率：", "Check frequency: ") + freqText(sec) + "  ▸");
+        if (!Prefs.isEnabled(this)) {
+            timingView.setText(t("已停用，不會自動切換網路。", "Turned off — the app won't switch networks."));
+            return;
+        }
+        long now = System.currentTimeMillis();
+        long next = Prefs.getNextCheck(this);
+        long last = Prefs.getLastCheck(this);
+        String lastStr = last > 0
+                ? new java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(new java.util.Date(last))
+                : t("尚未", "not yet");
+        String nextStr;
+        if (next <= 0) nextStr = t("啟動中…", "starting…");
+        else {
+            long left = Math.max(0, (next - now + 999) / 1000);
+            nextStr = left >= 60
+                    ? t("還有 " + (left / 60) + " 分 " + (left % 60) + " 秒", "in " + (left / 60) + " min " + (left % 60) + " s")
+                    : t("還有 " + left + " 秒", "in " + left + " s");
+        }
+        timingView.setText(t("⏱ " + freqText(sec) + "檢查一次\n上次檢查：" + lastStr + "　下次檢查：" + nextStr,
+                "⏱ Checks " + freqText(sec) + "\nLast check: " + lastStr + "   Next check: " + nextStr));
+    }
+
+    private void showIntervalPicker() {
+        int[] opts = Prefs.INTERVAL_OPTIONS;
+        String[] labels = new String[opts.length];
+        int current = Prefs.getIntervalSec(this), checked = -1;
+        for (int i = 0; i < opts.length; i++) {
+            labels[i] = freqText(opts[i]);
+            if (opts[i] == 30) labels[i] += t("（建議）", " (recommended)");
+            if (opts[i] == current) checked = i;
+        }
+        new AlertDialog.Builder(this)
+                .setTitle(t("多久檢查一次？", "How often to check?"))
+                .setSingleChoiceItems(labels, checked, (d, w) -> {
+                    Prefs.setIntervalSec(this, opts[w]);
+                    Prefs.log(this, t("檢查頻率改為", "Check frequency set to ") + freqText(opts[w]));
+                    WifiPriorityService.reschedule(this);
+                    d.dismiss();
+                    refresh();
+                })
+                .setNegativeButton(t("取消", "Cancel"), null)
+                .show();
+    }
+
     private void updateThresholdLabel() {
         int t = Prefs.getThreshold(this);
         String w = WifiHelper.signalWord(this, t);
@@ -269,6 +353,8 @@ public class MainActivity extends Activity {
         if (warn != null) warnView.setText(warn);
 
         statusView.setText(WifiHelper.evaluate(this, false));
+        updatePowerButton();
+        updateTiming();
 
         // 清單
         List<String> order = Prefs.getOrder(this);

@@ -7,7 +7,7 @@ Rank your Wi-Fi networks yourself, and the app automatically switches to the hig
 [![Support on Ko-fi](https://img.shields.io/badge/Ko--fi-Buy%20me%20a%20coffee-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/sagiriben)
 
 ## Download
-👉 **[Download the APK (v1.2)](https://github.com/pajh103082/android-wifi-priority-switcher/raw/main/release/WiFi-Priority.apk)**
+👉 **[Download the APK (v1.3)](https://github.com/pajh103082/android-wifi-priority-switcher/raw/main/release/WiFi-Priority.apk)**
 
 (The file lives in the [`release/`](release/) folder and is always the latest version.)
 
@@ -28,17 +28,24 @@ Rank your Wi-Fi networks yourself, and the app automatically switches to the hig
 1. Open the app, allow **Location** and choose **Precise** (Android requires it for apps to see nearby Wi-Fi names). Keep the phone's Location turned on.
 2. Tap **＋ Nearby / saved** to add networks to the list. Networks not saved on your phone will ask for a password.
 3. Reorder with ▲ ▼ — the top one has the highest priority.
-4. Turn on **Auto-switch to the highest-ranked Wi-Fi**.
+4. Tap the big button at the top to turn it on (green = ON, gray = OFF; tap again to turn off).
+   You can also pick how often it checks in **Settings → Check frequency** (10 s – 30 min, default 30 s).
 5. Recommended: set location permission to **Allow all the time** and tap **Don't restrict this app**, so it keeps working with the screen off.
 
 To change the language: **Settings → 語言 Language → System / 中文 / English**.
 
 ## Switching rules
-- Checks every 20 seconds and scans nearby networks about every 60 seconds.
+- Checks at the **check frequency** you choose (default every 30 s; 10 s – 30 min). The app shows the last check time and a countdown to the next one.
+- Android limits active scans to roughly once per 30 s, so with shorter intervals some checks reuse the latest scan results.
+- When Wi-Fi disconnects or is just turned on, it checks right away instead of waiting for the next round.
 - Only switches when the target's signal is stronger than the **switch threshold** (default -75 dBm, adjustable).
 - A higher-ranked current network is kept unless its signal drops 5 dBm below the threshold.
 - After a switch, waits 45 seconds before switching again; a network that fails to connect is skipped for 5 minutes.
 - Every switch is recorded in the in-app **Switch log**.
+
+## Turning it off
+- Tap the big button at the top of the app again, or **Turn off** in the notification.
+- When off, the background service stops completely, the notification disappears, and it won't start at boot until you turn it on again.
 
 ## Permissions
 | Permission | Why |

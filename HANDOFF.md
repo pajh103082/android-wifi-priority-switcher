@@ -1,7 +1,7 @@
 # 交接文件：Wi-Fi 優先順序 App
 
 > 給下一次接手的 Claude（或任何開發者）。先讀這份，再動程式碼。
-> 最後更新：2026-11-19（v1.2：中英文切換）
+> 最後更新：2026-11-19（v1.3：啟用開關、可調檢查頻率）
 
 ## 1. 這是什麼
 使用者要一個「可以控制手機優先連哪個 Wi-Fi」的 App。
@@ -12,10 +12,11 @@
 - UI：全部用程式碼產生（沒有 layout XML），**繁體中文／英文雙語**（見第 10 節）、大字體
 
 ## 2. 目前狀態
-- 版本：**v1.2（versionCode 3）**
+- 版本：**v1.3（versionCode 4）**
   - v1.0（2026-11-12）：初版
   - v1.1（2026-11-19）：新增「贊助作者」頁面（`SponsorActivity`，連到 Ko-fi https://ko-fi.com/sagiriben），主畫面最下方有入口
   - v1.2（2026-11-19）：中英文切換（設定 → 語言 Language：跟隨系統／中文／English）；App 名稱依系統語言；英文說明 README.en.md
+  - v1.3（2026-11-19）：回饋：「一直開著關不掉、不知道什麼時候會切換」→ 最上方加啟用／停用大按鈕、通知列加「停用自動切換」按鈕；檢查頻率可調（10 秒～30 分鐘，預設 30 秒）；畫面顯示上次檢查與下次檢查倒數（見第 11 節）
 - ✅ 已編譯成功、簽章驗證通過（debug 簽章，v2 scheme）
 - ✅ lint 無 Error（只剩 SetTextI18n、BatteryLife 等無害 Warning）
 - ⚠ **尚未在實機測試過**。
@@ -66,9 +67,10 @@ WifiPriority/
          ├─ MainActivity.java         UI：狀態、清單排序、新增網路、設定、紀錄、贊助入口
          ├─ SponsorActivity.java      贊助頁面（Ko-fi 按鈕，網址常數 KOFI_URL）
          ├─ WifiHelper.java           ★ 核心：掃描、找 netId、addNetwork、evaluate() 判斷是否切換
-         ├─ WifiPriorityService.java  前景服務：每 20 秒 evaluate、每 60 秒 startScan、監聽 Wi-Fi 廣播
+         ├─ WifiPriorityService.java  前景服務：依使用者設定的頻率 evaluate、最多每 30 秒 startScan、斷線時提前檢查
          ├─ L.java                    雙語工具 L.t(ctx, 中文, English)
          ├─ Prefs.java                SharedPreferences：順序(JSON)、開關、門檻、語言、失敗紀錄、log(最多40行)
+         ├─ ControlReceiver.java      通知列「停用自動切換」按鈕
          └─ BootReceiver.java         開機／App 更新後，若開關為開則自動啟動服務
 ```
 
@@ -84,7 +86,8 @@ WifiPriority/
 5. 實際切換：`enableNetwork(netId, true)` + `reconnect()`，並寫入 log。
 
 可調常數：`WifiHelper` 的 `COOLDOWN_MS / FAIL_CHECK_MS / HYSTERESIS_DB`；
-`WifiPriorityService` 的 `TICK_MS / SCAN_EVERY`；門檻預設 -75（Prefs，UI 可調 -90 ~ -50）。
+`WifiPriorityService` 的 `MIN_SCAN_GAP_MS（30 秒）/ SCAN_WAIT_MS（4 秒）`；
+檢查頻率選項在 `Prefs.INTERVAL_OPTIONS`（預設 30 秒，見第 11 節）；門檻預設 -75（Prefs，UI 可調 -90 ~ -50）。
 
 ## 6. 建置環境（雲端工作區重建步驟）
 工作區不會保留，下次要重新裝：
@@ -117,7 +120,7 @@ gradle assembleDebug --no-daemon     # 或 ./gradlew assembleDebug
 - 使用者選「大概位置」時看不到掃描結果。
 
 ## 8. 待辦 / 可能的下一步
-- [ ] 取得使用者實機測試回報（手機型號、Android 版本、是否成功切換）
+- [ ] 取得使用者實機測試回報（手機型號、Android 版本、是否成功切換；v1.3 的大按鈕、通知列停用、頻率倒數是否正常）
 - [x] 固定簽章金鑰：目前沿用 debug 金鑰並備份在使用者電腦（見第 6 節）
 - [ ] 視需求：清單拖曳排序、依時段／地點的不同優先清單、桌面小工具「一鍵切換」
 - [ ] 視需求：Shizuku 方案（不受 targetSdk 限制）
@@ -155,3 +158,20 @@ gradle assembleDebug --no-daemon     # 或 ./gradlew assembleDebug
   3. 功能或說明有變，`README.md` 和 `README.en.md` 兩份都要更新。
 - **想加第三種語言時：** 把 `L.t` 改成依語言代碼查表，或改用 strings.xml + 自訂 Context locale；
   目前只有兩種語言，用 `t(zh, en)` 最簡單。
+
+## 11. 啟用開關與檢查頻率（v1.3）
+- **需求：** 程式要有明確的啟用開關，不能一直開著關不掉；切換網路的頻率要能調整，而且要知道什麼時候會檢查。
+- **啟用／停用：**
+  - 主畫面最上方的大按鈕（`powerButton`）：綠色「● 開啟中」／灰色「○ 已停用」，點一下切換，呼叫 `MainActivity.setEnabled()`。
+  - 通知列有「停用自動切換」動作 → `ControlReceiver`（ACTION_DISABLE）→ `Prefs.setEnabled(false)` + `WifiPriorityService.stop()`。
+  - 停用後：服務 stopSelf、前景通知消失、`BootReceiver` 開機不啟動（看 `Prefs.isEnabled`）。
+  - 服務的 `check()` 每次都先確認 `Prefs.isEnabled`，就算有殘留排程也會自己停掉。
+- **檢查頻率：**
+  - `Prefs.getIntervalSec / setIntervalSec`，選項 `INTERVAL_OPTIONS = {10, 20, 30, 60, 120, 300, 600, 1800}` 秒，預設 30。
+  - UI：設定卡片「檢查頻率：每 X ▸」→ 單選對話框；改了就 `WifiPriorityService.reschedule()`（送 ACTION_RESCHEDULE，服務立刻用新頻率重排）。
+  - 服務迴圈 `loop`：每輪先把 `Prefs.nextCheck` 設成「現在 + 間隔」；距離上次主動掃描 ≥ 30 秒才 `startScan()`，等 4 秒再判斷；否則直接用最近一次掃描結果判斷。
+  - **不再**因為系統的掃描結果廣播就檢查（v1.2 以前會，導致檢查時間不固定）。只有 Wi-Fi「斷線」或「剛打開」才提前（3 秒後）檢查一次。
+  - `onStartCommand` 每次都重新 `startForeground()`，因為每次 `startForegroundService()` 都要求 5 秒內呼叫。
+- **時間顯示：** `Prefs.lastCheck / nextCheck`（毫秒）。畫面每秒更新「上次檢查／下次檢查倒數」（`updateTiming()`），
+  清單等其他內容每 4 秒重畫一次。通知列標題顯示頻率，展開後顯示「下次檢查 HH:mm:ss」。
+- **注意：** 手機深度休眠（Doze）時 Handler 會延後，實際檢查可能比倒數晚；醒來後會補上。

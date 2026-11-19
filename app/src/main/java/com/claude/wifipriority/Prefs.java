@@ -38,6 +38,20 @@ final class Prefs {
     static String getLang(Context c) { return sp(c).getString("lang", L.AUTO); }
     static void setLang(Context c, String v) { sp(c).edit().putString("lang", v).apply(); }
 
+    /** 檢查頻率可選的秒數（App 設定裡的選項）。 */
+    static final int[] INTERVAL_OPTIONS = {10, 20, 30, 60, 120, 300, 600, 1800};
+
+    /** 多久檢查一次要不要切換（秒），預設 30 秒。 */
+    static int getIntervalSec(Context c) { return sp(c).getInt("interval_sec", 30); }
+    static long getIntervalMs(Context c) { return getIntervalSec(c) * 1000L; }
+    static void setIntervalSec(Context c, int v) { sp(c).edit().putInt("interval_sec", v).apply(); }
+
+    /** 上次／下次檢查的時間（毫秒），給畫面倒數用；0 表示沒有排程。 */
+    static long getLastCheck(Context c) { return sp(c).getLong("last_check", 0); }
+    static void setLastCheck(Context c, long v) { sp(c).edit().putLong("last_check", v).apply(); }
+    static long getNextCheck(Context c) { return sp(c).getLong("next_check", 0); }
+    static void setNextCheck(Context c, long v) { sp(c).edit().putLong("next_check", v).apply(); }
+
     static boolean isEnabled(Context c) { return sp(c).getBoolean("enabled", false); }
     static void setEnabled(Context c, boolean v) { sp(c).edit().putBoolean("enabled", v).apply(); }
 

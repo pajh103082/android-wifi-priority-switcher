@@ -41,6 +41,10 @@
             android:foregroundServiceType="location" />
 
         <receiver
+            android:name=".ControlReceiver"
+            android:exported="false" />
+
+        <receiver
             android:name=".BootReceiver"
             android:exported="true">
             <intent-filter>
